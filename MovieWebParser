@@ -1,0 +1,49 @@
+import requests
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
+import lxml
+
+
+class MovieWebsiteParser:
+    def __init__(self, my_url):
+        self.my_url = my_url
+
+    def scrap(self):
+        movie_list = []
+        movie_dict = {}
+        actor_list = []
+        num = 0
+        with urlopen(self.my_url) as html_file:
+            soup = BeautifulSoup(html_file, "lxml")
+            movies = soup.findAll("div", class_="movie")
+            for movie in movies:
+                imdb = movie.find("span", class_="add-info").text.strip()[20:23]
+                if int(imdb[0]) >= 6:
+                    movie_dict['title'] = movie.find("span", class_="title").text
+                    movie_dict['year'] = movie.find("span", class_="add-info").text.strip()[:4]
+                    movie_dict['imdb'] = imdb
+                    m_u = movie.find("a")["href"]
+                    movie_url = f"{self.my_url}{m_u}"
+                    with urlopen(movie_url) as html_file1:
+                        soup = BeautifulSoup(html_file1, "lxml")
+                        actors = soup.findAll("div", class_="personname")
+                        for actor in actors:
+                            if num == 5:
+                                num = 0
+                                break
+                            act = actor.find("a").text
+                            actor_list.append(act)
+                            num += 1
+                        movie_dict["actors"] = actor_list
+                        actor_list = []
+
+
+                    movie_list.append(movie_dict)
+
+                movie_dict = {}
+        return movie_list
+
+
+myparser = MovieWebsiteParser("https://www.kinokopilka.pro/")
+movies_ = myparser.scrap()
+print(movies_)
